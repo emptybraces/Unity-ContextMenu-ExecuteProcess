@@ -1,0 +1,9 @@
+{
+    "name": "com.emptybraces.contextmenu_execute_process",
+    "displayName": "ContextMenu Execute Process",
+    "author": "emptybraces",
+    "version": "1.0.0",
+    "unity": "2023.2",
+    "description": "Calling any process from the asset context menu.",
+    "dependencies": {}
+}
