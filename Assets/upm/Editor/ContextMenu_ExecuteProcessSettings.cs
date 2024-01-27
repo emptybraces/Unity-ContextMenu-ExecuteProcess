@@ -38,7 +38,7 @@ namespace Emptybraces.Editor
 				_OutputFile();
 			GUI.enabled = true;
 			EditorGUILayout.Space(20);
-			EditorGUILayout.LabelField("Selected Asset Path:");
+			EditorGUILayout.LabelField("Identifier that replaces selected asset's path is");
 			EditorGUILayout.TextField("Abosolute Path", "ABS_PATH");
 			EditorGUILayout.TextField("File name", "FILENAME");
 			EditorGUILayout.TextField("File name with extension", "FILENAME_EXT");

@@ -12,12 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 531610698a299584f809993d44c4c08d, type: 3}
   m_Name: ContextMenu_ExecuteProcessSettings
   m_EditorClassIdentifier: 
-  process1:
-    Filename: C:\Program Files\CELSYS\CLIP STUDIO 1.5\CLIP STUDIO PAINT\CLIPStudioPaint.exe
+  Processes:
+  - MenuName: Clip Studio
+    ProcessPath: C:\Program Files\CELSYS\CLIP STUDIO 1.5\CLIP STUDIO PAINT\CLIPStudioPaint.exe
     Args: ABS_PATH
-  process2:
-    Filename: 
-    Args: 
-  process3:
-    Filename: 
-    Args: 
+  OutputPath: Editor/
