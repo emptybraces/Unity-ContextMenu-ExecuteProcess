@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: ContextMenu_ExecuteProcessSettings
   m_EditorClassIdentifier: 
   process1:
-    Filename: test
+    Filename: C:\Program Files\CELSYS\CLIP STUDIO 1.5\CLIP STUDIO PAINT\CLIPStudioPaint.exe
     Args: ABS_PATH
   process2:
-    Filename: test
-    Args: FILENAME
+    Filename: 
+    Args: 
   process3:
-    Filename: test
-    Args: FILENAME_EXT
+    Filename: 
+    Args: 

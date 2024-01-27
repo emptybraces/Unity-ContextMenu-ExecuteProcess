@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -9,6 +10,8 @@ namespace Emptybraces.Editor
 	class ContextMenu_ExecuteProcessSettingsProvider : SettingsProvider
 	{
 		SerializedObject _settings;
+		SerializedProperty _processes;
+		SerializedProperty _outputPath;
 		public ContextMenu_ExecuteProcessSettingsProvider(string path, SettingsScope scope = SettingsScope.User)
 			: base(path, scope) { }
 
@@ -21,14 +24,19 @@ namespace Emptybraces.Editor
 		{
 			// This function is called when the user clicks on the MyCustom element in the Settings window.
 			_settings = ContextMenu_ExecuteProcessSettings.GetSerializedSettings();
+			_processes = _settings.FindProperty(nameof(ContextMenu_ExecuteProcessSettings.Processes));
+			_outputPath = _settings.FindProperty(nameof(ContextMenu_ExecuteProcessSettings.OutputPath));
 		}
 
 		public override void OnGUI(string searchContext)
 		{
 			// Use IMGUI to display UI:
-			EditorGUILayout.PropertyField(_settings.FindProperty("process1"));
-			EditorGUILayout.PropertyField(_settings.FindProperty("process2"));
-			EditorGUILayout.PropertyField(_settings.FindProperty("process3"));
+			EditorGUILayout.PropertyField(_processes);
+			EditorGUILayout.PropertyField(_outputPath);
+			GUI.enabled = 0 < _processes.arraySize;
+			if (GUILayout.Button("Output File"))
+				_OutputFile();
+			GUI.enabled = true;
 			EditorGUILayout.Space(20);
 			EditorGUILayout.LabelField("Selected Asset Path:");
 			EditorGUILayout.TextField("Abosolute Path", "ABS_PATH");
@@ -49,20 +57,53 @@ namespace Emptybraces.Editor
 			// provider.keywords = GetSearchKeywordsFromGUIContentProperties<Styles>();
 			return provider;
 		}
-	}
 
+		void _OutputFile()
+		{
+			string contents = @"
+using UnityEditor;
+namespace Emptybraces.Editor
+{
+	public class ContextMenu_ExecuteProcessMenu
+	{
+		// INSERT_HERE
+	}
+}
+";
+			var settings = AssetDatabase.LoadAssetAtPath<ContextMenu_ExecuteProcessSettings>(ContextMenu_ExecuteProcessSettings.k_Path);
+			var method_contents = new StringBuilder();
+			foreach (var data in settings.Processes)
+			{
+				if (data.MenuName == "")
+					continue;
+				method_contents.AppendLine($"[MenuItem(\"Assets/ExecuteProcess/{data.MenuName.Replace(" ", "_")}\")]");
+				method_contents.AppendLine($"		static void {data.MenuName.Replace(" ", "_")}()");
+				method_contents.AppendLine("		{");
+				method_contents.AppendLine($"			var settings = AssetDatabase.LoadAssetAtPath<ContextMenu_ExecuteProcessSettings>(ContextMenu_ExecuteProcessSettings.k_Path);");
+				method_contents.AppendLine($"			if (settings != null)");
+				method_contents.AppendLine($"				ContextMenu_ExecuteProcessSettings.Process(\"{data.ProcessPath.Replace("\\", "\\\\")}\", \"{data.Args.Replace("\\", "\\\\")}\");");
+				method_contents.AppendLine("		}");
+			}
+
+			var path = Path.Combine(Application.dataPath, settings.OutputPath);
+			if (!Directory.Exists(path))
+				Directory.CreateDirectory(path);
+			File.WriteAllText(path + "/ContextMenu_ExecuteProcessMenu.cs", contents.Replace("// INSERT_HERE", method_contents.ToString()));
+			AssetDatabase.Refresh();
+		}
+	}
 	class ContextMenu_ExecuteProcessSettings : ScriptableObject
 	{
 		public const string k_Path = "Assets/ContextMenu_ExecuteProcessSettings.asset";
 		[System.Serializable]
-		class Data
+		public class Data
 		{
-			public string Filename;
+			public string MenuName;
+			public string ProcessPath;
 			public string Args;
 		}
-		[SerializeField] Data process1;
-		[SerializeField] Data process2;
-		[SerializeField] Data process3;
+		public Data[] Processes;
+		public string OutputPath = "Editor/";
 		internal static ContextMenu_ExecuteProcessSettings GetOrCreateSettings()
 		{
 			var settings = AssetDatabase.LoadAssetAtPath<ContextMenu_ExecuteProcessSettings>(k_Path);
@@ -80,29 +121,7 @@ namespace Emptybraces.Editor
 			return new SerializedObject(GetOrCreateSettings());
 		}
 
-		[MenuItem("Assets/ExecuteProcess/Process_1")]
-		static void _Process_1()
-		{
-			var settings = AssetDatabase.LoadAssetAtPath<ContextMenu_ExecuteProcessSettings>(k_Path);
-			if (settings != null)
-				_Process(settings.process1.Filename, settings.process1.Args);
-		}
-		[MenuItem("Assets/ExecuteProcess/Process_2")]
-		static void _Process_2()
-		{
-			var settings = AssetDatabase.LoadAssetAtPath<ContextMenu_ExecuteProcessSettings>(k_Path);
-			if (settings != null)
-				_Process(settings.process2.Filename, settings.process2.Args);
-		}
-		[MenuItem("Assets/ExecuteProcess/Process_3")]
-		static void _Process_3()
-		{
-			var settings = AssetDatabase.LoadAssetAtPath<ContextMenu_ExecuteProcessSettings>(k_Path);
-			if (settings != null)
-				_Process(settings.process3.Filename, settings.process3.Args);
-		}
-
-		static void _Process(string filename, string args)
+		public static void Process(string filename, string args)
 		{
 			if (string.IsNullOrEmpty(filename))
 				return;
@@ -112,13 +131,14 @@ namespace Emptybraces.Editor
 
 			var info = new ProcessStartInfo();
 			info.WindowStyle = ProcessWindowStyle.Normal;
+			info.WorkingDirectory = Directory.GetParent(filename).FullName;
 			info.FileName = filename;
 			info.UseShellExecute = true;
 			info.Verb = "RunAs";
 			info.CreateNoWindow = false;
 			info.RedirectStandardOutput = false;
 			info.Arguments = args;
-			Process.Start(info);
+			System.Diagnostics.Process.Start(info);
 		}
 	}
 }
